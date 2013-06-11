@@ -26,7 +26,7 @@
         self.delegate = self;
         self.contentSize = CGSizeMake(frame.size.width*20, frame.size.height/12);
         self.contentOffset = CGPointMake(frame.size.width*4, 0);
-        self.showsHorizontalScrollIndicator = YES;
+        self.showsHorizontalScrollIndicator = NO;
     }
     return self;
 }
