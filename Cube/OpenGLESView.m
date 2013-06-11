@@ -16,14 +16,19 @@
     CAEAGLLayer         *_eaglLayer;
     EAGLContext         *_context;
     
-    GLuint              _colorRenderBuffer;
-    
     GLuint              _positionSlot;
     GLuint              _colorSlot;
     
-    GLuint              _projectionUniform;
+    GLuint              _sampleFrameBuffer;
+    GLuint              _resolveFrameBuffer;
+    
+    GLuint              _sampleRenderBuffer;
+    GLuint              _colorRenderBuffer;
     
     GLuint              _depthRenderBuffer;
+    GLuint              _sampleDepthRenderBuffer;
+    
+    GLuint              _projectionUniform;
     
     float               _currentRotation;
     GLuint              _programHandle;
@@ -109,10 +114,19 @@
 }
 
 - (void)setupRenderBuffer
-{
+{    
     glGenRenderbuffers(1, &_colorRenderBuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderBuffer);
     [_context renderbufferStorage:GL_RENDERBUFFER fromDrawable:_eaglLayer];
+    
+    GLint width;
+    GLint height;
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &width);
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &height);
+    
+    glGenRenderbuffers(1, &_sampleRenderBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, _sampleRenderBuffer);
+    glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 4, GL_RGBA8_OES, width, height);
 }
 
 - (void)setupDepthBuffer
@@ -120,26 +134,44 @@
     glGenRenderbuffers(1, &_depthRenderBuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, _depthRenderBuffer);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, self.frame.size.width, self.frame.size.height);
+    
+    GLint width;
+    GLint height;
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &width);
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &height);
+    
+    glGenRenderbuffers(1, &_sampleDepthRenderBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, _sampleDepthRenderBuffer);
+    glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT16, width, height);
 }
 
 - (void)setupFrameBuffer
 {
-    GLuint framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                              GL_RENDERBUFFER, _colorRenderBuffer);
+    glGenFramebuffers(1, &_resolveFrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, _resolveFrameBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER,_colorRenderBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,GL_RENDERBUFFER, _colorRenderBuffer);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthRenderBuffer);
+    
+    glGenFramebuffers(1, &_sampleFrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, _sampleFrameBuffer);
+    glBindRenderbuffer(1, _sampleRenderBuffer);
+    glBindRenderbuffer(1, _sampleDepthRenderBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _sampleRenderBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _sampleDepthRenderBuffer);
+    
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        NSLog(@"Failed to make complete framebuffer object %x", glCheckFramebufferStatus(GL_FRAMEBUFFER));
 }
 
 - (void)setup3DObjects
 {
     _cubeTop    = [[Cube alloc] initWithWidth:2.75f forProgram:_programHandle];
-    _cubeTop.color = [UIColor colorWithRed:0.9f green:0.8f blue:0.7f alpha:1.0];
+    _cubeTop.color = [UIColor colorWithRed:0.7f green:0.8f blue:0.9f alpha:1.0f];
     _cubeMiddle = [[Cube alloc] initWithWidth:2.75f forProgram:_programHandle];
-    _cubeMiddle.color = [UIColor colorWithRed:0.7f green:1.0f blue:0.7f alpha:1.0f];
+    _cubeMiddle.color = [UIColor colorWithRed:0.5f green:0.6f blue:0.8f alpha:1.0f];
     _cubeBottom = [[Cube alloc] initWithWidth:2.75f forProgram:_programHandle];
-    _cubeBottom.color = [UIColor colorWithRed:0.7f green:0.8f blue:0.9f alpha:1.0f];
+    _cubeBottom.color = [UIColor colorWithRed:0.4f green:0.5f blue:0.7f alpha:1.0f];
 }
 
 - (void)dealloc
@@ -163,9 +195,9 @@
 
 - (void)render:(CADisplayLink*)displayLink 
 {
-    
-    glClearColor(0, 0.0, 0.0
-                 , 1.0);
+    glBindFramebuffer(GL_FRAMEBUFFER, _sampleFrameBuffer);
+    glViewport(0, 0, self.frame.size.width, self.frame.size.height);
+    glClearColor(0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     
@@ -188,12 +220,20 @@
     
     
     // 1
-    glViewport(0, 0, self.frame.size.width, self.frame.size.height);
+    
     
     [_cubeMiddle render];
     [_cubeTop render];
     [_cubeBottom render];
     
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER_APPLE, _resolveFrameBuffer);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER_APPLE, _sampleFrameBuffer);
+    glResolveMultisampleFramebufferAPPLE();
+    
+    const GLenum discards[]  = {GL_COLOR_ATTACHMENT0,GL_DEPTH_ATTACHMENT};
+    glDiscardFramebufferEXT(GL_READ_FRAMEBUFFER_APPLE,2,discards);
+    
+    glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderBuffer);
     [_context presentRenderbuffer:GL_RENDERBUFFER];
 }
 

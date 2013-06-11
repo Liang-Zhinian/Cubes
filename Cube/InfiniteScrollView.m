@@ -40,10 +40,9 @@
                      withVelocity:(CGPoint)velocity
               targetContentOffset:(inout CGPoint *)targetContentOffset
 {
-    targetContentOffset->x = floorf(targetContentOffset->x/self.frame.size.width)*self.frame.size.width;
+    targetContentOffset->x = roundf(targetContentOffset->x/self.frame.size.width)*self.frame.size.width;
     targetContentOffset->x = MIN(targetContentOffset->x, self.contentSize.width*18/21);
     targetContentOffset->x = MAX(targetContentOffset->x, self.contentSize.width*1/21);
-    NSLog(@"Max: %.2f Target: %.2f", self.contentSize.width-self.frame.size.width, targetContentOffset->x);
 }
 
 //////////////////////////////////////////////////////////////////////////
