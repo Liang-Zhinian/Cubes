@@ -24,7 +24,7 @@
     if ( (self = [super initWithFrame:frame]))
     {
         self.delegate = self;
-        self.contentSize = CGSizeMake(frame.size.width*20, frame.size.height/12);
+        self.contentSize = CGSizeMake(frame.size.width*21, frame.size.height);
         self.contentOffset = CGPointMake(frame.size.width*4, 0);
         self.showsHorizontalScrollIndicator = NO;
     }
@@ -40,7 +40,10 @@
                      withVelocity:(CGPoint)velocity
               targetContentOffset:(inout CGPoint *)targetContentOffset
 {
-    targetContentOffset->x = roundf(targetContentOffset->x/self.frame.size.width)*self.frame.size.width;
+    targetContentOffset->x = floorf(targetContentOffset->x/self.frame.size.width)*self.frame.size.width;
+    targetContentOffset->x = MIN(targetContentOffset->x, self.contentSize.width*18/21);
+    targetContentOffset->x = MAX(targetContentOffset->x, self.contentSize.width*1/21);
+    NSLog(@"Max: %.2f Target: %.2f", self.contentSize.width-self.frame.size.width, targetContentOffset->x);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -50,19 +53,19 @@
 
 - (void)layoutSubviews
 {
-    CGFloat rightThreshold = self.contentSize.width*3/5;
-    CGFloat leftThreshold = self.contentSize.width*1/5;
+    CGFloat rightThreshold = self.contentSize.width*11/21;
+    CGFloat leftThreshold = self.contentSize.width*9/21;
     
     if (self.contentOffset.x > rightThreshold)
     {
         CGPoint contentOffset = self.contentOffset;
-        contentOffset.x -= self.contentSize.width*1/5;
+        contentOffset.x -= self.contentSize.width*1/21;
         self.contentOffset = contentOffset;
     }
     else if(self.contentOffset.x < leftThreshold)
     {
         CGPoint contentOffset = self.contentOffset;
-        contentOffset.x += self.contentSize.width*1/5;
+        contentOffset.x += self.contentSize.width*1/21;
         self.contentOffset = contentOffset;
     }
 }

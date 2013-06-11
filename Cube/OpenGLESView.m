@@ -63,9 +63,9 @@
         
         _topScrollView = [[InfiniteScrollView alloc] initWithFrame:CGRectMake(frame.size.width/4, 0, frame.size.width/2, frame.size.height/3)];
         
-        _middleScrollView = [[InfiniteScrollView alloc] initWithFrame:CGRectMake(0, frame.size.height/3, frame.size.width, frame.size.height/3)];
+        _middleScrollView = [[InfiniteScrollView alloc] initWithFrame:CGRectMake(frame.size.width/4, frame.size.height/3, frame.size.width/2, frame.size.height/3)];
         
-        _bottomScrollView = [[InfiniteScrollView alloc] initWithFrame:CGRectMake(0, frame.size.height*2/3, frame.size.width, frame.size.height/3)];
+        _bottomScrollView = [[InfiniteScrollView alloc] initWithFrame:CGRectMake(frame.size.width/4, frame.size.height*2/3, frame.size.width/2, frame.size.height/3)];
         
         [self addSubview:_topScrollView];
         [self addSubview:_middleScrollView];
