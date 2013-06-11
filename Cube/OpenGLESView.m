@@ -75,6 +75,8 @@
         [self addSubview:_topScrollView];
         [self addSubview:_middleScrollView];
         [self addSubview:_bottomScrollView];
+        
+        self.contentScaleFactor = 2.0;
     }
     return self;
 }
@@ -211,11 +213,11 @@
     [_cubeTop.modelView rotateBy:CC3VectorMake(0, rotation,0)];
     
     [_cubeMiddle.modelView populateFromTranslation:CC3VectorMake(0, 0, -7)];
-    rotation = -_middleScrollView.contentOffset.x*90/_middleScrollView.frame.size.width*2;
+    rotation = -_middleScrollView.contentOffset.x*90/_middleScrollView.frame.size.width;
     [_cubeMiddle.modelView rotateBy:CC3VectorMake(0, rotation,0)];
     
     [_cubeBottom.modelView populateFromTranslation:CC3VectorMake(0, -2.8, -7)];
-    rotation = -_bottomScrollView.contentOffset.x*90/_bottomScrollView.frame.size.width*2;
+    rotation = -_bottomScrollView.contentOffset.x*90/_bottomScrollView.frame.size.width;
     [_cubeBottom.modelView rotateBy:CC3VectorMake(0, rotation,0)];
     
     
